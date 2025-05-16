@@ -1,0 +1,11 @@
+FROM alpine:3.21
+
+WORKDIR /myapp
+
+COPY ./bin/storage-service .
+
+RUN chmod +x ./storage-service
+
+EXPOSE 80
+
+CMD [ "./storage-service" ]

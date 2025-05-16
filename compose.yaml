@@ -1,0 +1,61 @@
+services:
+  core-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.core
+
+  math-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.math
+
+  loadbalancer :
+    image: nginx:stable-alpine3.21
+    ports:
+      - 8080:80
+    volumes:
+      - ./templates:/etc/nginx/templates
+      - ./frontend:/frontend
+  
+  database:
+    image: postgres:17.4-alpine3.21
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - 127.0.0.1:5433:5432
+    volumes:
+      - database-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  migrate-util:
+    image: migrate/migrate
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command:
+      [
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://${DB_USER}:${DB_PASS}@${DB_ADDR}/${DB_NAME}?sslmode=disable",
+        "up"
+      ]
+  storage-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.storage
+    env_file:
+    - .env
+
+volumes:
+  database-data:

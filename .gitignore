@@ -28,6 +28,5 @@ config
 cmd
 go.mod
 go.sum
-compose.*
 *.Dockerfile
 taskfile.*
